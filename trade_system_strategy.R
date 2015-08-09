@@ -20,8 +20,7 @@ TradeSystem$methods(
     stockCode = stockTrade$stock$code
     entrySize = parameters[parameters$code==stockCode, "entryDonchianSize"]
     
-    stockData = stockTrade$stock$getHistoryBeforeDate(date)
-    dataSize = nrow(stockData)
+    dataSize = stockTrade$stock$getHistorySizeBeforeDate(date)
     
     if(dataSize <= entrySize){
       return(FALSE);
@@ -35,7 +34,8 @@ TradeSystem$methods(
     }
     donchianChannel =  systemMemory[[stockCode]][["entryDonchianChannel"]];
     
-    return(stockData[dataSize, "close"] > donchianChannel[dataSize-1, "high"]);
+    closeValue = stockTrade$stock$getCloseValueAtDate(date)
+    return(closeValue > donchianChannel[dataSize-1, "high"]);
   },
   
   riskStrategy = function(stockTrade, date) {
@@ -67,8 +67,7 @@ TradeSystem$methods(
     
     exitSize = parameters[parameters$code==stockCode, "exitDonchianSize"]
     
-    stockData = stockTrade$stock$getHistoryBeforeDate(date)
-    dataSize = nrow(stockData)
+    dataSize = stockTrade$stock$getHistorySizeBeforeDate(date)
     if(dataSize <= exitSize){
       return(FALSE);
     }
@@ -81,6 +80,7 @@ TradeSystem$methods(
     }
     donchianChannel =  systemMemory[[stockCode]][["exitDonchianChannel"]];
     
-    return(stockData[dataSize, "close"] <= donchianChannel[dataSize-1, "low"]);
+    closeValue = stockTrade$stock$getCloseValueAtDate(date)
+    return(closeValue <= donchianChannel[dataSize-1, "low"]);
   }
 );

@@ -27,12 +27,13 @@ Stock <- setRefClass("Stock",
                          history <<- data.frame(date=rep(as.Date(NA), 0), high=numeric(0), low=numeric(0), close=numeric(0)); 
                        },
                        
-                       getHistoryBeforeDate = function(date){
+                       
+                       getHistorySizeBeforeDate = function(date){
                          dateIndex = historyIndex[[as.character(date)]];
                          if(is.null(dateIndex)){
-                           return(history[which(history$date<=date), ]);
+                           return(length(which(history$date<=date)));
                          }else{
-                           return(history[1:dateIndex, ])
+                           return(dateIndex)
                          }
                        },
                        

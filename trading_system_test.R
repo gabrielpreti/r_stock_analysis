@@ -25,16 +25,10 @@ test.stock.addHistory <- function(){
   checkEqualsNumeric(nrow(stock$history), 3)
 }
 
-test.stock.getHistoryBeforeDate <- function(){  
+test.stock.getHistorySizeBeforeDate <- function(){  
   for(i in 1:3){
-    h = stock$getHistoryBeforeDate(dates[i]);
-    checkEqualsNumeric(nrow(h), i);
-    for(j in 1:i){
-      checkEquals(h[j, "date"], dates[j]);
-      checkEqualsNumeric(h[j, "high"], highs[j]);
-      checkEqualsNumeric(h[j, "low"], lows[j]);
-      checkEqualsNumeric(h[j, "close"], closes[j]);  
-    }
+    size = stock$getHistorySizeBeforeDate(dates[i]);
+    checkEqualsNumeric(size, i);
   }
 }
 
