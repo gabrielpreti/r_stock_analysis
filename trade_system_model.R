@@ -30,7 +30,7 @@ Stock <- setRefClass("Stock",
                        getHistoryBeforeDate = function(date){
                          dateIndex = historyIndex[[as.character(date)]];
                          if(is.null(dateIndex)){
-                            return(history[which(history$date<=date), ]);
+                           return(history[which(history$date<=date), ]);
                          }else{
                            return(history[1:dateIndex, ])
                          }
@@ -42,8 +42,8 @@ Stock <- setRefClass("Stock",
                            return(history[dateIndex, "close"])
                          }
                          
-                          temp = history[which(history$date<=date), "close"]
-                          return(temp[length(temp)][1]);  
+                         temp = history[which(history$date<=date), "close"]
+                         return(temp[length(temp)][1]);  
                        },
                        
                        addHistory = function(d, h, l, c){
@@ -247,7 +247,7 @@ TradeSystem <- setRefClass("TradeSystem",
                              
                              openNewTrade = function(stockTrade, date) {
                                risk = .self$riskStrategy(stockTrade, date)
-
+                               
                                stockValue = stockTrade$stock$getCloseValueAtDate(date);                               
                                if(risk$size<1 || ((risk$size*stockValue) > .self$accountBalance)){
                                  print("Not enough balance to enter position");
@@ -257,14 +257,14 @@ TradeSystem <- setRefClass("TradeSystem",
                                trade = stockTrade$openNewTrade(risk$size, as.Date(date), risk$stopPos);
                                accountBalance <<- .self$accountBalance - (trade$size * trade$getBuyValue());
                                
-#                                print(paste("Buying", trade$size, "positions of", trade$stock$code, "at", trade$getBuyValue()));
+                               #                                print(paste("Buying", trade$size, "positions of", trade$stock$code, "at", trade$getBuyValue()));
                              },
                              
                              closeLastTrade = function(stockTrade, date){
                                trade = stockTrade$closeLastTrade(as.Date(date));
                                accountBalance <<- .self$accountBalance + (trade$size * trade$getSellValue());
                                
-#                                print(paste("selling", trade$size, "positions of", trade$stock$code, "at", trade$getSellValue()));
+                               #                                print(paste("selling", trade$size, "positions of", trade$stock$code, "at", trade$getSellValue()));
                              },
                              
                              calculateTotalOpenPositions = function(date) {
@@ -277,7 +277,7 @@ TradeSystem <- setRefClass("TradeSystem",
                                }
                                return(total);
                              },
-
+                             
                              flushMemory = function() {
                                systemMemory <<- list();
                              },
@@ -300,47 +300,47 @@ TradeSystem <- setRefClass("TradeSystem",
                                  allDates = allDates[which(allDates<=finalDate)]
                                }
                                
-#                                print(paste("Analyzing stocks from", head(allDates, 1), "to", tail(allDates, 1)))
+                               #                                print(paste("Analyzing stocks from", head(allDates, 1), "to", tail(allDates, 1)))
                                
-                               nrows = nrow(.self$balanceHistory);
-                               for(date in allDates){
-                                 for(stockTrade in stocks){ 
-                                   if(!stockTrade$stock$hasHistoryAtDate(as.Date(date))){
-                                     next;
-                                   }
-                                   
-                                   if(stockTrade$isInOpenPosition()){
-                                     if(.self$exitStrategy(stockTrade, date) || stockTrade$hasReachedStopPosition(date)){
-                                       .self$closeLastTrade(stockTrade, date);
-                                     }
-                                   }else{
-                                     #Se foi especificado um subconjunto de ações, e a ação corrente não está nesse grupo, então não abre trade pra ação.
-                                     if(!is.null(stockCodes) && !(stockTrade$stock$code %in% stockCodes)){
-                                       next;
-                                     }
-                                     
-                                     if(.self$entryStrategy(stockTrade, date)){
-                                       openNewTrade(stockTrade, date);
-                                     }
-                                   }
-                                 }
-                                 
-                                 nrows = nrows + 1.
-                                 .self$balanceHistory[nrows, "date"] = as.Date(date);
-                                 .self$balanceHistory[nrows, "balance"] = .self$accountBalance + .self$calculateTotalOpenPositions(date);
-                               }
-                               
-                               #print("Done.");
+                               balances = sapply(allDates, 
+                                                 function(date) {
+                                                   sapply(stocks,
+                                                          function(stockTrade, date){
+                                                            if(!stockTrade$stock$hasHistoryAtDate(as.Date(date))){
+                                                              return();
+                                                            }
+                                                            
+                                                            if(stockTrade$isInOpenPosition()){
+                                                              if(.self$exitStrategy(stockTrade, date) || stockTrade$hasReachedStopPosition(date)){
+                                                                .self$closeLastTrade(stockTrade, date);
+                                                              }
+                                                            }else{
+                                                              #Se foi especificado um subconjunto de ações, e a ação corrente não está nesse grupo, então não abre trade pra ação.
+                                                              if(!is.null(stockCodes) && !(stockTrade$stock$code %in% stockCodes)){
+                                                                return();
+                                                              }
+                                                              
+                                                              if(.self$entryStrategy(stockTrade, date)){
+                                                                openNewTrade(stockTrade, date);
+                                                              }
+                                                            }
+                                                          },
+                                                          date=date
+                                                   );                                 
+                                                   return(.self$accountBalance)
+                                                 }
+                               );
+                               .self$balanceHistory = merge(.self$balanceHistory, data.frame(date=allDates, balance=balances), all=TRUE);
                              },
-
-                              closeAllOpenTrades = function(){
-                                #print("Closing all open trades in the system ...");
-                                for(stockTrade in stocks){
-                                  if(stockTrade$isInOpenPosition()){
-                                    lastDate = tail(stockTrade$stock$history[, "date"], n=1)
-                                    .self$closeLastTrade(stockTrade, lastDate);
-                                  }
-                                }
-                              }
+                             
+                             closeAllOpenTrades = function(){
+                               #print("Closing all open trades in the system ...");
+                               for(stockTrade in stocks){
+                                 if(stockTrade$isInOpenPosition()){
+                                   lastDate = tail(stockTrade$stock$history[, "date"], n=1)
+                                   .self$closeLastTrade(stockTrade, lastDate);
+                                 }
+                               }
+                             }
                            )
 )

@@ -115,7 +115,7 @@ optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDa
   bestGain = 0;
   for(i in 2:50){
     for(j in 2:i){
-#       print(paste("Analyzing entry=", i, " exit=", j, " for stock ", stock$code, sep=""));
+      #print(paste("Analyzing entry=", i, " exit=", j, " for stock ", stock$code, sep=""));
       system <- TradeSystem$new(stockVector=c(stock), accountInitialPosition=initialPosition);
       system$setParameters(data.frame(code=stock$code, entryDonchianSize=i, exitDonchianSize=j));
       system$analyzeStocks(initialDate, finalDate);
@@ -136,8 +136,8 @@ optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDa
 }
 
 createOptimizedParametersFrame <- function(stockList, initialPos, initialDate=NULL, finalDate=NULL){
-#   parameters = mclapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate, mc.silent=FALSE, mc.cores = CORES)  
-  parameters = lapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate)  
+   parameters = mclapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate, mc.silent=FALSE, mc.cores = CORES)  
+#  parameters = lapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate)  
   parametersFrame = data.frame(code=rep(NA, 0), entryDonchianSize=rep(NA, 0), exitDonchianSize=rep(NA, 0))
   for(p in parameters) {
     if(p$gain<=0){
