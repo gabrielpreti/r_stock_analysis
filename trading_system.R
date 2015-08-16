@@ -9,7 +9,7 @@ source("trade_system_strategy.R")
 
 library(doMC)
 library(foreach)
-CORES = detectCores()
+CORES =  detectCores();
 registerDoMC(CORES);
 
 #####################################################################
@@ -104,7 +104,6 @@ for(stockCode in STOCKS_TO_ANALYZE){
 }
 
 
-
 #####################################################################
 #Otimização dos parâmetros do modelo
 ######################################################################
@@ -119,15 +118,18 @@ optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDa
       system <- TradeSystem$new(stockVector=c(stock), accountInitialPosition=initialPosition);
       system$setParameters(data.frame(code=stock$code, entryDonchianSize=i, exitDonchianSize=j));
       system$analyzeStocks(initialDate, finalDate);
-      gains[nrow(gains)+1, "entry"] = i;
-      gains[nrow(gains), "exit"] = j;
-      gains[nrow(gains), "gain"] = system$accountBalance - system$accountInitialPosition
       
       currentGain = system$accountBalance - system$accountInitialPosition;
+      
+      nrows = nrow(gains)+1
+      gains[nrows, "entry"] = i;
+      gains[nrows, "exit"] = j;
+      gains[nrows, "gain"] = currentGain
+      
       if( currentGain > bestGain ){
         entrySize = i;
         exitSize = j
-        bestGain = system$accountBalance-system$accountInitialPosition;
+        bestGain = currentGain;
       }
     }
   } 
@@ -162,18 +164,9 @@ mergeParameters = function(parameters1, parameters2){
 }
 
 #####################################################################
-#Execução do modelo
-######################################################################
-# system <- TradeSystem$new(stockVector=STOCKS, accountInitialPosition=INITIAL_POSITION);
-# system$setParameters(PARAMETERS_FRAME);
-# system$analyzeStocks()
-# 
-# print(paste("Final balance:", system$accountBalance, " % gain:", 100*((system$accountBalance-system$accountInitialPosition)/system$accountInitialPosition)));
-
-#####################################################################
 #Execução do modelo, ainda em teste
 ######################################################################
-TRAINING_PERIOD_IN_MONTHS=6
+TRAINING_PERIOD_IN_MONTHS=7
 FINAL_DATE=as.Date('2015-01-01')
 
 currentInitialDate=as.Date(INITIAL_DATE);
