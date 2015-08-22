@@ -11,7 +11,6 @@ library(doMC)
 library(foreach)
 CORES =  detectCores();
 registerDoMC(CORES);
-
 #####################################################################
 #Função para geração de relatórios
 ######################################################################
@@ -97,7 +96,7 @@ for(stockCode in STOCKS_TO_ANALYZE){
   
   stock = Stock$new(code=stockCode);
   for(i in 1:nrow(stockData)){
-    stock$addHistory(as.Date(stockData[i, "Date"]), stockData[i, "High"], stockData[i, "Low"], stockData[i, "Close"])
+    stock$addHistory(as.Date(stockData[i, "Date"]), stockData[i, "High"], stockData[i, "Low"], stockData[i, "Close"], stockData[i, "Volume"])
   }
   
   STOCKS = append(STOCKS, stock);
@@ -108,46 +107,63 @@ for(stockCode in STOCKS_TO_ANALYZE){
 #Otimização dos parâmetros do modelo
 ######################################################################
 optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDate=NULL) {
-  entrySize=1
-  exitSize=1
+  donchianSelectedEntry=1
+  donchianSelectedExit=1
+  selectedSmaLong=1
+  selectedSmaShort=1
   gains = data.frame(entry=rep(NA, 0), exit=rep(NA, 0), gain=rep(NA, 0))
   bestGain = 0;
-  for(i in 2:50){
-    for(j in 2:i){
-      #print(paste("Analyzing entry=", i, " exit=", j, " for stock ", stock$code, sep=""));
-      system <- TradeSystem$new(stockVector=c(stock), accountInitialPosition=initialPosition);
-      system$setParameters(data.frame(code=stock$code, entryDonchianSize=i, exitDonchianSize=j));
-      system$analyzeStocks(initialDate, finalDate);
-      
-      currentGain = system$accountBalance - system$accountInitialPosition;
-      
-      nrows = nrow(gains)+1
-      gains[nrows, "entry"] = i;
-      gains[nrows, "exit"] = j;
-      gains[nrows, "gain"] = currentGain
-      
-      if( currentGain > bestGain ){
-        entrySize = i;
-        exitSize = j
-        bestGain = currentGain;
+  for(entryDonchianSize in 10:20){
+    #   for(entryDonchianSize in 10:10){
+    for(exitDonchianSize in 2:10){
+      #     for(exitDonchianSize in 2:2){
+      print(paste("Parameters (entryDonchianSize, exitDonchianSize):", entryDonchianSize, exitDonchianSize))
+      #             for(smaLongSize in 20:30){
+      for(smaLongSize in 20:20){
+        #         for(smaShortSize in 2:10){
+        for(smaShortSize in 2:2){
+          system <- TradeSystem$new(stockVector=c(stock), accountInitialPosition=initialPosition);
+          system$setParameters(data.frame(code=stock$code, entryDonchianSize=entryDonchianSize, exitDonchianSize=exitDonchianSize, smaLongSize=smaLongSize, smaShortSize=smaShortSize));
+          system$analyzeStocks(initialDate, finalDate);
+          
+          currentGain = system$accountBalance - system$accountInitialPosition;
+          
+          nrows = nrow(gains)+1
+          gains[nrows, "entryDonchianSize"] = entryDonchianSize;
+          gains[nrows, "exitDonchianSize"] = exitDonchianSize;
+          gains[nrows, "smaLongSize"] = smaLongSize;
+          gains[nrows, "smaShortSize"] = smaShortSize;
+          gains[nrows, "gain"] = currentGain
+          
+          if( currentGain > bestGain ){
+            donchianSelectedEntry = entryDonchianSize;
+            donchianSelectedExit = exitDonchianSize;
+            selectedSmaLong = smaLongSize;
+            selectedSmaShort = smaShortSize;
+            bestGain = currentGain;
+          }
+        }
       }
+      
     }
   } 
   write.csv(gains, file=paste("/tmp/", stock$code, ".csv", sep="") )
-  return(list(stockCode=stock$code, entrySize=entrySize, exitSize=exitSize, gain=bestGain))
+  return(list(stockCode=stock$code, entryDonchianSize=donchianSelectedEntry, exitDonchianSize=donchianSelectedExit, smaLongSize=selectedSmaLong, smaShortSize=selectedSmaShort, gain=bestGain))
 }
 
 createOptimizedParametersFrame <- function(stockList, initialPos, initialDate=NULL, finalDate=NULL){
-   parameters = mclapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate, mc.silent=FALSE, mc.cores = CORES)  
-#  parameters = lapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate)  
-  parametersFrame = data.frame(code=rep(NA, 0), entryDonchianSize=rep(NA, 0), exitDonchianSize=rep(NA, 0))
+  parameters = mclapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate, mc.silent=FALSE, mc.cores = CORES)  
+  #    parameters = lapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate)  
+  parametersFrame = data.frame(code=rep(NA, 0), entryDonchianSize=rep(NA, 0), exitDonchianSize=rep(NA, 0), smaLongSize=rep(NA, 0), smaShortSize=rep(NA, 0))
   for(p in parameters) {
     if(p$gain<=0){
       next;
     }
     parametersFrame[nrow(parametersFrame)+1, "code"] = p$stockCode;
-    parametersFrame[nrow(parametersFrame), "entryDonchianSize"] = p$entrySize;
-    parametersFrame[nrow(parametersFrame), "exitDonchianSize"] = p$exitSize;
+    parametersFrame[nrow(parametersFrame), "entryDonchianSize"] = p$entryDonchianSize;
+    parametersFrame[nrow(parametersFrame), "exitDonchianSize"] = p$exitDonchianSize;
+    parametersFrame[nrow(parametersFrame), "smaLongSize"] = p$smaLongSize;
+    parametersFrame[nrow(parametersFrame), "smaShortSize"] = p$smaShortSize;
   }
   return(parametersFrame);
 }
@@ -155,88 +171,100 @@ createOptimizedParametersFrame <- function(stockList, initialPos, initialDate=NU
 mergeParameters = function(parameters1, parameters2){
   for(code in parameters2[, "code"]){
     if(code %in% parameters1[, "code"]){
-      parameters1[parameters1$code==code, c("code", "entryDonchianSize", "exitDonchianSize")] = parameters2[parameters2$code==code, c("code", "entryDonchianSize", "exitDonchianSize")]
+      parameters1[parameters1$code==code, c("code", "entryDonchianSize", "exitDonchianSize", "smaLongSize", "smaShortSize")] = parameters2[parameters2$code==code, c("code", "entryDonchianSize", "exitDonchianSize", "smaLongSize", "smaShortSize")]
     }else{
-      parameters1[nrow(parameters1)+1, c("code", "entryDonchianSize", "exitDonchianSize")] = parameters2[parameters2$code==code, c("code", "entryDonchianSize", "exitDonchianSize")]
+      parameters1[nrow(parameters1)+1, c("code", "entryDonchianSize", "exitDonchianSize", "smaLongSize", "smaShortSize")] = parameters2[parameters2$code==code, c("code", "entryDonchianSize", "exitDonchianSize", "smaLongSize", "smaShortSize")]
     }
   }
   return(parameters1);
 }
 
 #####################################################################
-#Execução do modelo, ainda em teste
+#Execução do modelo
 ######################################################################
-TRAINING_PERIOD_IN_MONTHS=7
 FINAL_DATE=as.Date('2015-01-01')
 
-currentInitialDate=as.Date(INITIAL_DATE);
-month(currentInitialDate) = month(currentInitialDate) + TRAINING_PERIOD_IN_MONTHS
-currentFinalDate = currentInitialDate;
-month(currentFinalDate) = month(currentFinalDate) + 1
-
-system <- TradeSystem$new(stockVector=STOCKS, accountInitialPosition=INITIAL_POSITION);
-optimizedParameters = data.frame(code=rep(NA, 0), entryDonchianSize=rep(NA, 0), exitDonchianSize=rep(NA, 0))
-
-
-#Rprof(, line.profiling = TRUE, interval = 0.01)
-while(currentFinalDate<=FINAL_DATE) {
-  trainingPeriodBeginning = currentInitialDate
-  month(trainingPeriodBeginning) = month(trainingPeriodBeginning) - TRAINING_PERIOD_IN_MONTHS;
-  trainingPeriodEnd = currentInitialDate
-  day(trainingPeriodEnd) = day(trainingPeriodEnd) - 1;
+PERIODS_IN_MONTHS_TO_ANALYZE = c(1:10)
+results = data.frame(training_months=rep(NA, 0), initial_balance=rep(NA, 0), final_balance=rep(NA, 0), time=rep(NA, 0))
+for(TRAINING_PERIOD_IN_MONTHS in PERIODS_IN_MONTHS_TO_ANALYZE){
+  #####################################################################
+  #Análise
+  ######################################################################
+  print(paste("Analyzing for", TRAINING_PERIOD_IN_MONTHS, " months training ..."))
+  start = Sys.time()
   
-  print(paste("Analysing from", currentInitialDate, "to", currentFinalDate, "with training period from ", trainingPeriodBeginning, "to", trainingPeriodEnd))
-  newParameters = createOptimizedParametersFrame(STOCKS, system$accountBalance, trainingPeriodBeginning, trainingPeriodEnd);
-  print(newParameters)
-  optimizedParameters = mergeParameters(optimizedParameters, newParameters);
+  currentInitialDate=as.Date(INITIAL_DATE);
+  month(currentInitialDate) = month(currentInitialDate) + TRAINING_PERIOD_IN_MONTHS
+  currentFinalDate = currentInitialDate;
+  month(currentFinalDate) = month(currentFinalDate) + 1
   
-  system$flushMemory();
-  system$setParameters(optimizedParameters);
-  system$analyzeStocks(initialDate=currentInitialDate, finalDate=currentFinalDate, stockCodes=newParameters$code); 
+  system <- TradeSystem$new(stockVector=STOCKS, accountInitialPosition=INITIAL_POSITION);
+  optimizedParameters = data.frame(code=rep(NA, 0), entryDonchianSize=rep(NA, 0), exitDonchianSize=rep(NA, 0), smaLongSize=rep(NA, 0), smaShortSize=rep(NA, 0))
   
+  while(currentFinalDate<=FINAL_DATE) {
+    trainingPeriodBeginning = currentInitialDate
+    month(trainingPeriodBeginning) = month(trainingPeriodBeginning) - TRAINING_PERIOD_IN_MONTHS;
+    trainingPeriodEnd = currentInitialDate
+    day(trainingPeriodEnd) = day(trainingPeriodEnd) - 1;
+    
+    print(paste("Analysing from", currentInitialDate, "to", currentFinalDate, "with training period from ", trainingPeriodBeginning, "to", trainingPeriodEnd))
+    newParameters = createOptimizedParametersFrame(STOCKS, system$accountBalance, trainingPeriodBeginning, trainingPeriodEnd);
+    print(newParameters)
+    optimizedParameters = mergeParameters(optimizedParameters, newParameters);
+    
+    system$flushMemory();
+    system$setParameters(optimizedParameters);
+    system$analyzeStocks(initialDate=currentInitialDate, finalDate=currentFinalDate, stockCodes=newParameters$code); 
+    
+    
+    month(currentInitialDate) = month(currentInitialDate) +1;
+    month(currentFinalDate) = month(currentFinalDate) + 1;
+  }
   
-  month(currentInitialDate) = month(currentInitialDate) +1;
-  month(currentFinalDate) = month(currentFinalDate) + 1;
+  print(optimizedParameters)
+  system$closeAllOpenTrades()
+  print(paste("Final balance:", system$accountBalance, " % gain:", 100*((system$accountBalance-system$accountInitialPosition)/system$accountInitialPosition)));
   
-}
-print(optimizedParameters)
-system$closeAllOpenTrades()
-print(paste("Final balance:", system$accountBalance, " % gain:", 100*((system$accountBalance-system$accountInitialPosition)/system$accountInitialPosition)));
-
-#####################################################################
-#Geração de relatórios
-######################################################################
-
-plot(
+  results[nrow(results)+1, c("training_months", "initial_balance", "final_balance")] = c(TRAINING_PERIOD_IN_MONTHS, system$accountInitialPosition, system$accountBalance)
+  results[nrow(results), "time"] = Sys.time()-start;
+  
+  #####################################################################
+  #Geração de relatórios
+  ######################################################################
+  
+  plot(
     rep(1, nrow(system$balanceHistory)), 
     type="n", 
     xlim=c(0, nrow(system$balanceHistory)), 
     ylim=c(0, max(system$balanceHistory[, "balance"])), 
     main="Saldo",  xaxt="n", xlab="", ylab="");
-labels=seq(1, nrow(system$balanceHistory), by=nrow(system$balanceHistory)/30);
-axis(1, at=labels, lab=strftime(system$balanceHistory[labels, "date"], format="%d/%m/%y"), las=2);
-lines(system$balanceHistory[, "balance"], type="o", cex=0.8)
-
-X11()
-tmp_dev=dev.cur();
-pdf(file="/tmp/stock_report.pdf", );
-pdf_dev=dev.cur();
-
-
-i=0;
-for(stockTrade in system$stocks){
-  dev.set(tmp_dev) 
+  labels=seq(1, nrow(system$balanceHistory), by=nrow(system$balanceHistory)/30);
+  axis(1, at=labels, lab=strftime(system$balanceHistory[labels, "date"], format="%d/%m/%y"), las=2);
+  lines(system$balanceHistory[, "balance"], type="o", cex=0.8)
   
-  error=FALSE;
-  tryCatch(
-    stockReport(FILE_CONTENT, stockTrade, INITIAL_DATE),
-    error=function(e){print(paste("Error in", stockTrade$stock$code)); error=TRUE}
-  );
+  X11()
+  tmp_dev=dev.cur();
+  pdf(file=paste("stock_report_", TRAINING_PERIOD_IN_MONTHS, ".pdf", sep=""));
+  pdf_dev=dev.cur();
   
-  if(!error){
-    dev.copy(which=pdf_dev);
+  
+  i=0;
+  for(stockTrade in system$stocks){
+    dev.set(tmp_dev) 
+    
+    error=FALSE;
+    tryCatch(
+      stockReport(FILE_CONTENT, stockTrade, INITIAL_DATE),
+      error=function(e){print(paste("Error in", stockTrade$stock$code)); error=TRUE}
+    );
+    
+    if(!error){
+      dev.copy(which=pdf_dev);
+    }
+    i=i+1
   }
-  i=i+1
+  dev.off(pdf_dev)
+  dev.off(tmp_dev)
 }
-dev.off(pdf_dev)
-dev.off(tmp_dev)
+
+write.csv(x=results, file="resultados.csv")

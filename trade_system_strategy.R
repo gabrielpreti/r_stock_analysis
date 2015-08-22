@@ -4,35 +4,47 @@ TradeSystem$methods(
     parameters = .self$parameters;
     stockCode = stockTrade$stock$code
     entrySize = parameters[parameters$code==stockCode, "entryDonchianSize"]
+    smaLongSize = parameters[parameters$code==stockCode, "smaLongSize"]
+    smaShortSize = parameters[parameters$code==stockCode, "smaShortSize"]
     
     dataSize = stockTrade$stock$getHistorySizeBeforeDate(date)
     
-    if(dataSize <= entrySize){
+    if(dataSize <= max(entrySize, smaLongSize)){
       return(FALSE);
     }
-
+    
     if(is.null(systemMemory[[stockCode]])){
       systemMemory[[stockCode]] <<- list();
     }
     if(is.null(systemMemory[[stockCode]][["entryDonchianChannel"]])){
       systemMemory[[stockCode]][["entryDonchianChannel"]] <<- DonchianChannel(cbind(stockTrade$stock$history[, "high"], stockTrade$stock$history[, "low"]), n=entrySize)
     }
+    if(is.null(systemMemory[[stockCode]][["smaLong"]])){
+      systemMemory[[stockCode]][["smaLong"]] <<- SMA(cbind(stockTrade$stock$history[, "high"],stockTrade$stock$history[, "low"], stockTrade$stock$history[, "close"]), n=smaLongSize)
+    }
+    if(is.null(systemMemory[[stockCode]][["smaShort"]])){
+      systemMemory[[stockCode]][["smaShort"]] <<- SMA(cbind(stockTrade$stock$history[, "high"],stockTrade$stock$history[, "low"], stockTrade$stock$history[, "close"]), n=smaShortSize)
+    }
     donchianChannel =  systemMemory[[stockCode]][["entryDonchianChannel"]];
+    smaLong =  systemMemory[[stockCode]][["smaLong"]];
+    smaShort =  systemMemory[[stockCode]][["smaShort"]];
     
     closeValue = stockTrade$stock$getCloseValueAtDate(date)
-    return(closeValue > donchianChannel[dataSize-1, "high"]);
+    volume = stockTrade$stock$getVolumeAtDate(date)
+    #     return(volume>=10^7 && closeValue > donchianChannel[dataSize-1, "high"] && smaShort[dataSize-1]>=smaLong[dataSize-1]);
+    return(volume>=10^7 && closeValue > donchianChannel[dataSize-1, "high"]);
   },
   
   riskStrategy = function(stockTrade, date) {
     stockValue = stockTrade$stock$getCloseValueAtDate(date);
     
     
-    posSize = floor((0.2*.self$accountBalance)/stockValue) #Cada posicao equivale a 10% do saldo
-    stopPosValue = stockValue - ((0.01*.self$accountBalance)/posSize) #Risco de 2%
+    posSize = floor((0.2*.self$accountBalance)/stockValue) #Cada posicao equivale a 20% do saldo
+    stopPosValue = stockValue - ((0.02*.self$accountBalance)/posSize) #Risco de 1%
     
     return(list(size=posSize, stopPos=stopPosValue))
   },
-
+  
   exitStrategy = function(stockTrade, date) {
     parameters = .self$parameters
     stockCode = stockTrade$stock$code

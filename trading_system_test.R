@@ -8,6 +8,7 @@ dates = as.Date(c('2015-07-01', '2015-07-02', '2015-07-03', '2015-07-04'))
 highs = c(10, 11, 13, 7);
 lows = c(9, 10, 11, 7);
 closes = c(9.5, 10.5, 11.5, 7)
+volumes = c(10^6, 20^6, 30^6, 40^6)
 
 test.stock <- function(){ 
   checkEquals(stock$code, "ABC")
@@ -15,13 +16,13 @@ test.stock <- function(){
 }
 
 test.stock.addHistory <- function(){  
-  stock$addHistory(dates[1], highs[1], lows[1], closes[1]);
+  stock$addHistory(dates[1], highs[1], lows[1], closes[1], volumes[1]);
   checkEqualsNumeric(nrow(stock$history), 1)
   
-  stock$addHistory(dates[2], highs[2], lows[2], closes[2]);
+  stock$addHistory(dates[2], highs[2], lows[2], closes[2], volumes[2]);
   checkEqualsNumeric(nrow(stock$history), 2)
   
-  stock$addHistory(dates[3], highs[3], lows[3], closes[3]);
+  stock$addHistory(dates[3], highs[3], lows[3], closes[3], volumes[3]);
   checkEqualsNumeric(nrow(stock$history), 3)
 }
 
@@ -38,10 +39,16 @@ test.stock.getCloseValueAtDate <- function(){
   }
 }
 
+test.stock.getVolumeAtDate <- function(){
+  for(i in 1:3){
+    checkEqualsNumeric(stock$getVolumeAtDate(dates[i]), volumes[i]);
+  }
+}
+
 test.stock.hasHistoryAtDate <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:3){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);  
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);  
   }
   
   checkTrue(stock$hasHistoryAtDate(dates[1]))
@@ -53,7 +60,7 @@ test.stock.hasHistoryAtDate <- function() {
 test.stock.getDateIndex <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:3){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);  
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);  
   }
   
   checkEqualsNumeric(1, stock$getDateIndex(dates[1]));
@@ -100,7 +107,7 @@ test.trade.getProfit <- function() {
 test.trade.isProfittable <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   
   trade = Trade$new(stock=stock, size=10, buyDate=dates[1], stopPos=8);
@@ -113,7 +120,7 @@ test.trade.isProfittable <- function() {
 test.trade.getBuyValue <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   
   for(i in 1:3){
@@ -126,7 +133,7 @@ test.trade.getBuyValue <- function() {
 test.trade.getSellValue <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   
   trade = Trade$new(stock=stock, size=10, buyDate=dates[1], stopPos=8);
@@ -142,7 +149,7 @@ test.trade.getSellValue <- function() {
 test.trade.hasReachedStopPosition <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   
   trade = Trade$new(stock=stock, size=10, buyDate=dates[1], stopPos=8);
@@ -161,7 +168,7 @@ test.StockTrades.initialize <- function(){
 test.StockTrades.getLastTrade <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   
   stockTrades = StockTrades$new(stock=stock);
@@ -194,7 +201,7 @@ test.StockTrades.getLastTrade <- function() {
 test.StockTrades.openNewTrade <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   stockTrades = StockTrades$new(stock=stock);
   
@@ -210,7 +217,7 @@ test.StockTrades.openNewTrade <- function() {
 test.StockTrades.closeLastTrade <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   stockTrades = StockTrades$new(stock=stock);
   
@@ -228,7 +235,7 @@ test.StockTrades.closeLastTrade <- function() {
 test.StockTrades.isInOpenPosition <- function() {
   stock = Stock$new(code="ABC")
   for(i in 1:4){
-    stock$addHistory(dates[i], highs[i], lows[i], closes[i]);
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
   }
   stockTrades = StockTrades$new(stock=stock);
   
@@ -242,6 +249,31 @@ test.StockTrades.isInOpenPosition <- function() {
   
   stockTrades$openNewTrade(10, dates[3], stopPos=8);
   checkEquals(TRUE, stockTrades$isInOpenPosition());
+}
+
+test.StockTrades.hasAnyTrade <- function() {
+  stock = Stock$new(code="ABC")
+  for(i in 1:4){
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
+  }
+  stockTrades = StockTrades$new(stock=stock);
+  
+  checkEquals(FALSE, stockTrades$hasAnyTrade());
+  
+  stockTrades$openNewTrade(10, dates[1], stopPos=8);
+  checkEquals(TRUE, stockTrades$hasAnyTrade());
+}
+
+test.StockTrades.isProfittable <- function() {
+  stock = Stock$new(code="ABC")
+  for(i in 1:4){
+    stock$addHistory(dates[i], highs[i], lows[i], closes[i], volumes[i]);
+  }
+  stockTrades = StockTrades$new(stock=stock);
+  
+  stockTrades$openNewTrade(closes[1], dates[1], stopPos=8);
+  checkEquals(TRUE, stockTrades$isProfittable(dates[2]));
+  checkEquals(FALSE, stockTrades$isProfittable(dates[4]));
 }
 
 # testSuite.trading <- defineTestSuite("trading", dirs=getwd(), testFileRegexp = ".+test\\.R", testFuncRegexp = "^test.+");

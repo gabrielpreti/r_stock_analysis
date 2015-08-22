@@ -24,7 +24,7 @@ Stock <- setRefClass("Stock",
                      methods=list(
                        initialize = function(...){
                          callSuper(...);
-                         history <<- data.frame(date=rep(as.Date(NA), 0), high=numeric(0), low=numeric(0), close=numeric(0)); 
+                         history <<- data.frame(date=rep(as.Date(NA), 0), high=numeric(0), low=numeric(0), close=numeric(0), volume=numeric(0)); 
                        },
                        
                        
@@ -47,11 +47,21 @@ Stock <- setRefClass("Stock",
                          return(temp[length(temp)][1]);  
                        },
                        
-                       addHistory = function(d, h, l, c){
+                       getVolumeAtDate = function(date){
+                         dateIndex = historyIndex[[as.character(date)]];
+                         if(!is.null(dateIndex)){
+                           return(history[dateIndex, "volume"])
+                         }
+                         
+                         temp = history[which(history$date<=date), "volume"]
+                         return(temp[length(temp)][1]);  
+                       },
+                       
+                       addHistory = function(d, h, l, c, v){
                          nextElementIndex = nrow(history)+1;
                          
                          history[nextElementIndex, "date"] <<- d ;          
-                         history[nextElementIndex, c("high", "low", "close")] <<- c(h, l, c);
+                         history[nextElementIndex, c("high", "low", "close", "volume")] <<- c(h, l, c, v);
                          historyIndex <<- hash(keys=as.character(history$date), values=c(1:nrow(history)))
                        },
                        
@@ -189,6 +199,15 @@ StockTrades <- setRefClass("StockTrades",
                              hasReachedStopPosition = function(date){
                                t = getLastTrade();
                                return(!is.null(t) && t$isOpen() && t$hasReachedStopPosition(date))
+                             },
+                             
+                             isProfittable = function(date) {
+                               t = getLastTrade();
+                               return(!is.null(t) && t$isProfittable(date))
+                             },
+                             
+                             hasAnyTrade = function(){
+                               return(length(trades)>0)
                              }
                            )
                            
@@ -312,7 +331,8 @@ TradeSystem <- setRefClass("TradeSystem",
                                                             }
                                                             
                                                             if(stockTrade$isInOpenPosition()){
-                                                              if(.self$exitStrategy(stockTrade, date) || stockTrade$hasReachedStopPosition(date)){
+                                                              profittable = stockTrade$isProfittable(date);
+                                                              if((profittable && .self$exitStrategy(stockTrade, date)) || (!profittable && stockTrade$hasReachedStopPosition(date))){
                                                                 .self$closeLastTrade(stockTrade, date);
                                                               }
                                                             }else{
