@@ -7,6 +7,10 @@ TradeSystem$methods(
     smaLongSize = parameters[parameters$code==stockCode, "smaLongSize"]
     smaShortSize = parameters[parameters$code==stockCode, "smaShortSize"]
     
+    if(is.na(entrySize) || is.null(entrySize)){
+      return(FALSE)
+    }
+    
     dataSize = stockTrade$stock$getHistorySizeBeforeDate(date)
     
     if(dataSize <= max(entrySize, smaLongSize)){

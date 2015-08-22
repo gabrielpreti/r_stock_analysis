@@ -176,6 +176,12 @@ mergeParameters = function(parameters1, parameters2){
       parameters1[nrow(parameters1)+1, c("code", "entryDonchianSize", "exitDonchianSize", "smaLongSize", "smaShortSize")] = parameters2[parameters2$code==code, c("code", "entryDonchianSize", "exitDonchianSize", "smaLongSize", "smaShortSize")]
     }
   }
+  
+  for(code in parameters1[, "code"]){
+    if(!(code %in% parameters2[, "code"])){
+      parameters1[parameters1$code==code, c("entryDonchianSize", "smaLongSize", "smaShortSize")] = c(NA, NA, NA);
+    }
+  }
   return(parameters1);
 }
 
@@ -212,9 +218,11 @@ for(TRAINING_PERIOD_IN_MONTHS in PERIODS_IN_MONTHS_TO_ANALYZE){
     print(newParameters)
     optimizedParameters = mergeParameters(optimizedParameters, newParameters);
     
-    system$flushMemory();
-    system$setParameters(optimizedParameters);
-    system$analyzeStocks(initialDate=currentInitialDate, finalDate=currentFinalDate, stockCodes=newParameters$code); 
+    if(nrow(optimizedParameters)>0) {
+      system$flushMemory();
+      system$setParameters(optimizedParameters);
+      system$analyzeStocks(initialDate=currentInitialDate, finalDate=currentFinalDate, stockCodes=newParameters$code); 
+    }
     
     
     month(currentInitialDate) = month(currentInitialDate) +1;
