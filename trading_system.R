@@ -113,9 +113,9 @@ optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDa
   selectedSmaShort=1
   gains = data.frame(entry=rep(NA, 0), exit=rep(NA, 0), gain=rep(NA, 0))
   bestGain = 0;
-  for(entryDonchianSize in 10:20){
+  for(entryDonchianSize in 5:30){
     #   for(entryDonchianSize in 10:10){
-    for(exitDonchianSize in 2:10){
+    for(exitDonchianSize in 2:entryDonchianSize){
       #     for(exitDonchianSize in 2:2){
       print(paste("Parameters (entryDonchianSize, exitDonchianSize):", entryDonchianSize, exitDonchianSize))
       #             for(smaLongSize in 20:30){
