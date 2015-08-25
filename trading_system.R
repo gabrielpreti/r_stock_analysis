@@ -159,9 +159,9 @@ createOptimizedParametersFrame <- function(stockList, initialPos, initialDate=NU
     #################
     #TODO: testar remover essa condição!!!!!!!
     #################
-#     if(p$gain<=0){
-#       next;
-#     }
+    if(p$gain<=0){
+      next;
+    }
     
     parametersFrame[nrow(parametersFrame)+1, "code"] = p$stockCode;
     parametersFrame[nrow(parametersFrame), "entryDonchianSize"] = p$entryDonchianSize;

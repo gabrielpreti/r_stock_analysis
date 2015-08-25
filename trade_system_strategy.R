@@ -44,7 +44,7 @@ TradeSystem$methods(
     
     
     posSize = floor((0.2*.self$accountBalance)/stockValue) #Cada posicao equivale a 20% do saldo
-    stopPosValue = stockValue - ((0.02*.self$accountBalance)/posSize) #Risco de 1%
+    stopPosValue = stockValue - ((0.01*.self$accountBalance)/posSize) #Risco de 1%
     
     return(list(size=posSize, stopPos=stopPosValue))
   },
