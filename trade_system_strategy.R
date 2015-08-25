@@ -35,7 +35,7 @@ TradeSystem$methods(
     
     closeValue = stockTrade$stock$getCloseValueAtDate(date)
     volume = stockTrade$stock$getVolumeAtDate(date)
-    #     return(volume>=10^7 && closeValue > donchianChannel[dataSize-1, "high"] && smaShort[dataSize-1]>=smaLong[dataSize-1]);
+#     return(volume>=10^7 && closeValue > donchianChannel[dataSize-1, "high"] && smaShort[dataSize-1]>=smaLong[dataSize-1]);
     return(volume>=10^7 && closeValue > donchianChannel[dataSize-1, "high"]);
   },
   

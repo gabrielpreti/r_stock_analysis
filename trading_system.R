@@ -113,15 +113,15 @@ optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDa
   selectedSmaShort=1
   gains = data.frame(entry=rep(NA, 0), exit=rep(NA, 0), gain=rep(NA, 0))
   bestGain = 0;
-  for(entryDonchianSize in 5:30){
+  for(entryDonchianSize in 10:20){
     #   for(entryDonchianSize in 10:10){
-    for(exitDonchianSize in 2:entryDonchianSize){
+    for(exitDonchianSize in 2:10){
       #     for(exitDonchianSize in 2:2){
       print(paste("Parameters (entryDonchianSize, exitDonchianSize):", entryDonchianSize, exitDonchianSize))
-      #             for(smaLongSize in 20:30){
-      for(smaLongSize in 20:20){
-        #         for(smaShortSize in 2:10){
-        for(smaShortSize in 2:2){
+#       for(smaLongSize in 20:30){
+              for(smaLongSize in 20:20){
+#         for(smaShortSize in 2:10){
+                for(smaShortSize in 2:2){
           system <- TradeSystem$new(stockVector=c(stock), accountInitialPosition=initialPosition);
           system$setParameters(data.frame(code=stock$code, entryDonchianSize=entryDonchianSize, exitDonchianSize=exitDonchianSize, smaLongSize=smaLongSize, smaShortSize=smaShortSize));
           system$analyzeStocks(initialDate, finalDate);
@@ -156,9 +156,13 @@ createOptimizedParametersFrame <- function(stockList, initialPos, initialDate=NU
   #    parameters = lapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate)  
   parametersFrame = data.frame(code=rep(NA, 0), entryDonchianSize=rep(NA, 0), exitDonchianSize=rep(NA, 0), smaLongSize=rep(NA, 0), smaShortSize=rep(NA, 0))
   for(p in parameters) {
-    if(p$gain<=0){
-      next;
-    }
+    #################
+    #TODO: testar remover essa condição!!!!!!!
+    #################
+#     if(p$gain<=0){
+#       next;
+#     }
+    
     parametersFrame[nrow(parametersFrame)+1, "code"] = p$stockCode;
     parametersFrame[nrow(parametersFrame), "entryDonchianSize"] = p$entryDonchianSize;
     parametersFrame[nrow(parametersFrame), "exitDonchianSize"] = p$exitDonchianSize;
