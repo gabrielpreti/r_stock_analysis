@@ -194,7 +194,7 @@ mergeParameters = function(parameters1, parameters2){
 ######################################################################
 FINAL_DATE=as.Date('2015-01-01')
 
-PERIODS_IN_MONTHS_TO_ANALYZE = c(1:10)
+PERIODS_IN_MONTHS_TO_ANALYZE = c(1:1)
 results = data.frame(training_months=rep(NA, 0), initial_balance=rep(NA, 0), final_balance=rep(NA, 0), time=rep(NA, 0))
 for(TRAINING_PERIOD_IN_MONTHS in PERIODS_IN_MONTHS_TO_ANALYZE){
   #####################################################################

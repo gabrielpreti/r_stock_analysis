@@ -13,7 +13,8 @@ TradeSystem$methods(
     
     dataSize = stockTrade$stock$getHistorySizeBeforeDate(date)
     
-    if(dataSize <= max(entrySize, smaLongSize)){
+#     if(dataSize <= max(entrySize, smaLongSize)){
+    if(dataSize <= entrySize){
       return(FALSE);
     }
     
@@ -36,7 +37,7 @@ TradeSystem$methods(
     closeValue = stockTrade$stock$getCloseValueAtDate(date)
     volume = stockTrade$stock$getVolumeAtDate(date)
 #     return(volume>=10^7 && closeValue > donchianChannel[dataSize-1, "high"] && smaShort[dataSize-1]>=smaLong[dataSize-1]);
-    return(volume>=10^7 && closeValue > donchianChannel[dataSize-1, "high"]);
+    return(volume>=10^6 && closeValue > donchianChannel[dataSize-1, "high"]);
   },
   
   riskStrategy = function(stockTrade, date) {
@@ -44,7 +45,7 @@ TradeSystem$methods(
     
     
     posSize = floor((0.3*.self$accountBalance)/stockValue) #Cada posicao equivale a 30% do saldo
-    stopPosValue = stockValue - ((0.03*.self$accountBalance)/posSize) #Risco de 3%
+    stopPosValue = stockValue - ((0.01*.self$accountBalance)/posSize) #Risco de 1%
     
     return(list(size=posSize, stopPos=stopPosValue))
   },
