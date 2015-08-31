@@ -268,13 +268,22 @@ TradeSystem <- setRefClass("TradeSystem",
                              openNewTrade = function(stockTrade, date) {
                                risk = .self$riskStrategy(stockTrade, date)
                                
-                               stockValue = stockTrade$stock$getCloseValueAtDate(date);                               
-                               if(risk$size<1 || ((risk$size*stockValue) > .self$accountBalance)){
+                               if(risk$size<1){
+                                 print("Postion size<1: not enough balance to enter position");
+                                 return(FALSE);
+                               }
+                               
+                               stockValue = stockTrade$stock$getCloseValueAtDate(date);  
+                               size = risk$size;
+                               while((size*stockValue)>.self$accountBalance && size>1){
+                                 size = size-1;
+                               }
+                               if(size<1){
                                  print("Not enough balance to enter position");
                                  return(FALSE);
                                }
                                
-                               trade = stockTrade$openNewTrade(risk$size, as.Date(date), risk$stopPos);
+                               trade = stockTrade$openNewTrade(size, as.Date(date), risk$stopPos);
                                accountBalance <<- .self$accountBalance - (trade$size * trade$getBuyValue());
                                
                                #                                print(paste("Buying", trade$size, "positions of", trade$stock$code, "at", trade$getBuyValue()));
@@ -354,12 +363,11 @@ TradeSystem <- setRefClass("TradeSystem",
                                .self$balanceHistory = merge(.self$balanceHistory, data.frame(date=allDates, balance=balances), all=TRUE);
                              },
                              
-                             closeAllOpenTrades = function(){
+                             closeAllOpenTrades = function(date){
                                #print("Closing all open trades in the system ...");
                                for(stockTrade in stocks){
                                  if(stockTrade$isInOpenPosition()){
-                                   lastDate = tail(stockTrade$stock$history[, "date"], n=1)
-                                   .self$closeLastTrade(stockTrade, lastDate);
+                                   .self$closeLastTrade(stockTrade, date);
                                  }
                                }
                              }

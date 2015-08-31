@@ -118,15 +118,16 @@ optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDa
     for(exitDonchianSize in 2:10){
       #     for(exitDonchianSize in 2:2){
       print(paste("Parameters (entryDonchianSize, exitDonchianSize):", entryDonchianSize, exitDonchianSize))
-#       for(smaLongSize in 20:30){
-              for(smaLongSize in 20:20){
-#         for(smaShortSize in 2:10){
-                for(smaShortSize in 2:2){
-          system <- TradeSystem$new(stockVector=c(stock), accountInitialPosition=initialPosition);
-          system$setParameters(data.frame(code=stock$code, entryDonchianSize=entryDonchianSize, exitDonchianSize=exitDonchianSize, smaLongSize=smaLongSize, smaShortSize=smaShortSize));
-          system$analyzeStocks(initialDate, finalDate);
+      #       for(smaLongSize in 20:30){
+      for(smaLongSize in 20:20){
+        #         for(smaShortSize in 2:10){
+        for(smaShortSize in 2:2){
+          sys <- TradeSystem$new(stockVector=c(stock), accountInitialPosition=initialPosition);
+          sys$setParameters(data.frame(code=stock$code, entryDonchianSize=entryDonchianSize, exitDonchianSize=exitDonchianSize, smaLongSize=smaLongSize, smaShortSize=smaShortSize));
+          sys$analyzeStocks(initialDate, finalDate);
+          sys$closeAllOpenTrades(finalDate);
           
-          currentGain = system$accountBalance - system$accountInitialPosition;
+          currentGain = sys$accountBalance - sys$accountInitialPosition;
           
           nrows = nrow(gains)+1
           gains[nrows, "entryDonchianSize"] = entryDonchianSize;
@@ -153,7 +154,7 @@ optimizeParameters <- function(stock, initialPosition, initialDate=NULL, finalDa
 
 createOptimizedParametersFrame <- function(stockList, initialPos, initialDate=NULL, finalDate=NULL){
   parameters = mclapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate, mc.silent=FALSE, mc.cores = CORES)  
-  #    parameters = lapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate)  
+#        parameters = lapply(stockList, optimizeParameters, initialPosition=initialPos, initialDate=initialDate, finalDate=finalDate)  
   parametersFrame = data.frame(code=rep(NA, 0), entryDonchianSize=rep(NA, 0), exitDonchianSize=rep(NA, 0), smaLongSize=rep(NA, 0), smaShortSize=rep(NA, 0))
   for(p in parameters) {
     #################
@@ -218,7 +219,7 @@ for(TRAINING_PERIOD_IN_MONTHS in PERIODS_IN_MONTHS_TO_ANALYZE){
     day(trainingPeriodEnd) = day(trainingPeriodEnd) - 1;
     
     print(paste("Analysing from", currentInitialDate, "to", currentFinalDate, "with training period from ", trainingPeriodBeginning, "to", trainingPeriodEnd))
-    newParameters = createOptimizedParametersFrame(STOCKS, system$accountBalance, trainingPeriodBeginning, trainingPeriodEnd);
+    newParameters = createOptimizedParametersFrame(STOCKS, system$accountInitialPosition, trainingPeriodBeginning, trainingPeriodEnd);
     print(newParameters)
     optimizedParameters = mergeParameters(optimizedParameters, newParameters);
     
@@ -234,7 +235,7 @@ for(TRAINING_PERIOD_IN_MONTHS in PERIODS_IN_MONTHS_TO_ANALYZE){
   }
   
   print(optimizedParameters)
-  system$closeAllOpenTrades()
+  system$closeAllOpenTrades(FINAL_DATE)
   print(paste("Final balance:", system$accountBalance, " % gain:", 100*((system$accountBalance-system$accountInitialPosition)/system$accountInitialPosition)));
   
   results[nrow(results)+1, c("training_months", "initial_balance", "final_balance")] = c(TRAINING_PERIOD_IN_MONTHS, system$accountInitialPosition, system$accountBalance)

@@ -3,6 +3,7 @@ TradeSystem$methods(
   entryStrategy = function(stockTrade, date) {
     parameters = .self$parameters;
     stockCode = stockTrade$stock$code
+    
     entrySize = parameters[parameters$code==stockCode, "entryDonchianSize"]
     smaLongSize = parameters[parameters$code==stockCode, "smaLongSize"]
     smaShortSize = parameters[parameters$code==stockCode, "smaShortSize"]
@@ -30,6 +31,7 @@ TradeSystem$methods(
     if(is.null(systemMemory[[stockCode]][["smaShort"]])){
       systemMemory[[stockCode]][["smaShort"]] <<- SMA(cbind(stockTrade$stock$history[, "high"],stockTrade$stock$history[, "low"], stockTrade$stock$history[, "close"]), n=smaShortSize)
     }
+
     donchianChannel =  systemMemory[[stockCode]][["entryDonchianChannel"]];
     smaLong =  systemMemory[[stockCode]][["smaLong"]];
     smaShort =  systemMemory[[stockCode]][["smaShort"]];
@@ -41,11 +43,25 @@ TradeSystem$methods(
   },
   
   riskStrategy = function(stockTrade, date) {
+    parameters = .self$parameters;
+    stockCode = stockTrade$stock$code
+    
+    exitSize = parameters[parameters$code==stockCode, "exitDonchianSize"]
     stockValue = stockTrade$stock$getCloseValueAtDate(date);
     
+    dataSize = stockTrade$stock$getHistorySizeBeforeDate(date)
     
-    posSize = floor((0.3*.self$accountBalance)/stockValue) #Cada posicao equivale a 30% do saldo
-    stopPosValue = stockValue - ((0.01*.self$accountBalance)/posSize) #Risco de 1%
+    if(is.null(systemMemory[[stockCode]])){
+      systemMemory[[stockCode]] <<- list();
+    }
+    if(is.null(systemMemory[[stockCode]][["exitDonchianChannel"]])){
+      systemMemory[[stockCode]][["exitDonchianChannel"]] <<- DonchianChannel(cbind(stockTrade$stock$history[, "high"], stockTrade$stock$history[, "low"]), n=exitSize)
+    }
+    exitDonchianChannel =  systemMemory[[stockCode]][["exitDonchianChannel"]];
+    
+    RISCO = 0.02
+    stopPosValue = exitDonchianChannel[dataSize-1, "low"]
+    posSize = floor((.self$accountInitialPosition*RISCO)/(stockValue - stopPosValue))
     
     return(list(size=posSize, stopPos=stopPosValue))
   },
