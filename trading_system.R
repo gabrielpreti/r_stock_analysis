@@ -75,6 +75,8 @@ STOCKS_TO_ANALYZE = c("ACES4", "BBDC4", "BDLL4", "BELG4", "BOBR4", "BRAP4", "BRI
                       "MGEL4", "MNDL4", "MTSA4", "MWET4", "MYPK4", "PCAR4", "PETR4", "POMO4", "PRGA4", "PTIP4", "RAPT4", "RCSL4", "RIPI4", "RPSA4", "SAPR4", "SCLO4", "SDIA4", "SHUL4", "SLED4",
                       "STRP4", "TCOC4", "TCSL4", "TEKA4", "TLPP4", "TMCP4", "TNLP4", "TOYB4", "TRFO4", "TRPL4", "TSPP4", "UBBR4", "VCPA4", "WEGE4", "BGIP4");
 
+STOCKS_TO_ANALYZE = c("ELPL4", "PETR4", "TOYB4", "TRPL4", "ITAU4", "ACES4", "BBDC4")
+
 #small caps
 # STOCKS_TO_ANALYZE = c("ABCB4", "ABRE3", "ALPA4", "ALSC3", "ALUP11", "AMAR3", "ANIM3", "ARTR3", "ARZZ3", "BBRK3", "BEEF3", "BPHA3", "BRAP4", "BRIN3", "BRPR3", "BRSR6", "BTOW3", "CSMG3", "CVCB3", "CYRE3", "DIRR3", "DTEX3", "ECOR3", "ELPL4", "ENBR3", "EQTL3", "ESTC3", "EVEN3", "EZTC3", "FLRY3", "GETI3", "GETI4", "GFSA3", "GOAU4", "GRND3", "HBOR3", "HGTX3", "HRTP3", "IGTA3", "LEVE3", "LIGT3", "LINX3", "MEAL3", "MGLU3", "MILS3", "MPLU3", "MRFG3", "MRVE3", "MYPK3", "ODPV3", "OIBR3", "OIBR4", "POMO4", "QGEP3", "QUAL3", "RAPT4", "RLOG3", "RSID3", "RUMO3", "SEER3", "SLCE3", "SMLE3", "SMTO3", "STBP11", "SULA11", "TCSA3", "TGMA3", "TOTS3", "TRPL4", "VLID3")
 
@@ -161,6 +163,7 @@ createOptimizedParametersFrame <- function(stockList, initialPos, initialDate=NU
     #TODO: testar remover essa condição!!!!!!!
     #################
     if(p$gain<=0){
+      print(paste("Gain is negative:", p$gain))
       next;
     }
     
@@ -220,8 +223,9 @@ for(TRAINING_PERIOD_IN_MONTHS in PERIODS_IN_MONTHS_TO_ANALYZE){
     
     print(paste("Analysing from", currentInitialDate, "to", currentFinalDate, "with training period from ", trainingPeriodBeginning, "to", trainingPeriodEnd))
     newParameters = createOptimizedParametersFrame(STOCKS, system$accountInitialPosition, trainingPeriodBeginning, trainingPeriodEnd);
-    print(newParameters)
     optimizedParameters = mergeParameters(optimizedParameters, newParameters);
+    print("Optimized parameters:")
+    print(optimizedParameters);
     
     if(nrow(optimizedParameters)>0) {
       system$flushMemory();
@@ -280,4 +284,18 @@ for(TRAINING_PERIOD_IN_MONTHS in PERIODS_IN_MONTHS_TO_ANALYZE){
   dev.off(tmp_dev)
 }
 
-write.csv(x=results, file="resultados.csv")
+
+
+
+
+###############################
+###############################
+STOCKS_TO_ANALYZE=c("ELPL4")
+currentInitialDate=as.Date('2014-01-01')
+currentFinalDate=as.Date('2015-01-01')
+system <- TradeSystem$new(stockVector=STOCKS, accountInitialPosition=INITIAL_POSITION);
+optimizedParameters = data.frame(code=STOCKS_TO_ANALYZE, entryDonchianSize=rep(10, 1), exitDonchianSize=rep(2, 1), smaLongSize=rep(10, 1), smaShortSize=rep(2, 1))
+system$setParameters(optimizedParameters);
+system$analyzeStocks(initialDate=currentInitialDate, finalDate=currentFinalDate, stockCodes=STOCKS_TO_ANALYZE);
+system$closeAllOpenTrades(currentFinalDate)
+system$accountBalance

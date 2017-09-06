@@ -1,0 +1,4 @@
+https://github.com/gabrielpreti/stock_analysis.git
+
+Rprof(line.profiling=TRUE)
+eval(parse(file = "trading_system.R", keep.source=TRUE))

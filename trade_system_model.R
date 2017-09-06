@@ -283,7 +283,9 @@ TradeSystem <- setRefClass("TradeSystem",
                                  return(FALSE);
                                }
                                
+                               
                                trade = stockTrade$openNewTrade(size, as.Date(date), risk$stopPos);
+                               print(paste("Opening new trade code=",trade$stock$code, " size=",size, "stopPos=",risk$stopPos, "date=",as.Date(date), "value=",stockValue))
                                accountBalance <<- .self$accountBalance - (trade$size * trade$getBuyValue());
                                
                                #                                print(paste("Buying", trade$size, "positions of", trade$stock$code, "at", trade$getBuyValue()));
@@ -293,7 +295,7 @@ TradeSystem <- setRefClass("TradeSystem",
                                trade = stockTrade$closeLastTrade(as.Date(date));
                                accountBalance <<- .self$accountBalance + (trade$size * trade$getSellValue());
                                
-                               #                                print(paste("selling", trade$size, "positions of", trade$stock$code, "at", trade$getSellValue()));
+                               print(paste("selling", trade$size, "positions of", trade$stock$code, "at", trade$getSellValue()));
                              },
                              
                              calculateTotalOpenPositions = function(date) {
@@ -373,3 +375,6 @@ TradeSystem <- setRefClass("TradeSystem",
                              }
                            )
 )
+
+
+
